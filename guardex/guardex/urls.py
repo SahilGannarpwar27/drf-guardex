@@ -22,6 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/', include('user.urls')),
     path('vehicle/', include('vehicle.urls')),
+    path('caching-demo/', include('caching_demo.urls')),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    
+
 ]
