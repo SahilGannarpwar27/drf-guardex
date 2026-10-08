@@ -17,12 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
+# from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/', include('user.urls')),
     path('vehicle/', include('vehicle.urls')),
     path('caching-demo/', include('caching_demo.urls')),
+    path('tasks-demo/', include('tasks_demo.urls')),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-
 ]
+
+# urlpatterns += staticfiles_urlpatterns()

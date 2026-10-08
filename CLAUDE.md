@@ -1,14 +1,12 @@
 ## Teaching Mode
 
 I am learning backend dev (DRF, ORM, Redis, Celery, deployment) on top of an
-existing DRF + PostgreSQL project. COnside me as a beginner as i am mostly from frontend background.
+existing DRF + PostgreSQL project. Consider me as a beginner as i am mostly from frontend background.
 
 Rules for every topic:
 
 - Explain the concept and WHY it's needed before writing any code.
-- Use this project's own real models for every example — always ground
-  explanations in the actual schema discovered during project scanning,
-  not a generic/hypothetical one.
+- Use this project's own real models for every example — if there is a need to create new model for the explanation of the topic ask and make me to create it .
 - Prefer concrete, visual walkthroughs (SQL-level, request/response flow,
   timeline diagrams) over abstract descriptions.
 - You can Extend the existing app so use the context and code or can Create a new Django app per topic (e.g. `caching_demo`, `tasks_demo`).
@@ -16,6 +14,11 @@ Rules for every topic:
   after each sub-concept and WAIT for my answer before moving further.
 - At the end of the core topic, list 2-3 "add-on" advanced concepts I can
   optionally go deeper on.
+
+"Exception — the
+Deployment module is infrastructure spanning the whole project, not a
+per-topic Django app. Use a deploy/ folder and root-level config files
+(Dockerfile, docker-compose.yml, .github/workflows/) instead."
 
 ## Practice Mode (hands-on learning)
 
@@ -43,9 +46,10 @@ bookstore schema above is only a _teaching example_, not the real schema).
 Django project root: `guardex/` (contains `manage.py`).
 
 **Stack**: Django 6.0.4, DRF, PostgreSQL, `rest_framework_simplejwt` (JWT,
-with token blacklist app), `django-filter`, `django-phonenumber-field`.
-No Redis/Celery/caching/CORS yet — good candidates for teaching-mode add-on
-apps (`caching_demo`, `tasks_demo`).
+with token blacklist app), `django-filter`, `django-phonenumber-field`,
+`django-redis` + Redis (caching, `caching_demo`), `celery` + Redis
+(task queue, `tasks_demo` — broker db `2`, result backend db `3`, cache
+db `1` on the same `guardex-redis` Redis server). No CORS yet.
 
 **Apps**:
 
@@ -90,6 +94,29 @@ views). Auth-adjacent endpoints are plain `APIView`. Root urlconf mounts
 - `vehicle/admin.py` registers no models.
 - No tests beyond stub files (`user/tests.py`, `vehicle/tests.py`).
 
+## Deployment Module
+
+Phased order: concept → local Gunicorn → local Nginx → Docker (Django +
+Postgres + Redis + Celery worker/beat) → VPS → CI/CD (GitHub Actions) →
+HTTPS/logging/zero-downtime deploys.
+
+Done: concept (WSGI, reverse proxy), local Gunicorn (multi-worker,
+crash/respawn), local Nginx (reverse proxy to Gunicorn on 127.0.0.1:8001,
+`/static/` served directly via `STATIC_ROOT` + `collectstatic`, hit and
+fixed a `www-data` home-dir traversal 403), Docker (`Dockerfile` +
+root-level `docker-compose.yml` with `web`/`db`/`redis`/`celery_worker`/
+`celery_beat` services; `settings.py` DB/Redis values externalized to
+env vars with local defaults preserved; hit and fixed a `celery_worker`
+queue-routing bug — needed `-Q default,reports` to match
+`CELERY_TASK_ROUTES` — and a missing-migrations issue on the fresh
+containerized Postgres volume; full stack verified end-to-end).
+
+Currently on: **Phase 5 — VPS** (moving the Docker Compose stack to a
+real VPS). Per the Teaching Mode exception, this uses root-level
+`Dockerfile`/`docker-compose.yml`/`deploy/` files, not a new Django app.
+
 ## Progress
 
 - Redis caching (caching_demo) — completed, see learning-notes/01-redis-caching.md
+- Celery task queue (tasks_demo) — completed, see learning-notes/02-celery-tasks.md
+- Deployment — in progress, see Deployment Module section above for phase
