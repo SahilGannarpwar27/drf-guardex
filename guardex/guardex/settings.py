@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 from datetime import timedelta
 
@@ -51,6 +52,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'vehicle',
     'django_filters',
+    'caching_demo',
+    'tasks_demo',
 ]
 
 MIDDLEWARE = [
@@ -91,6 +94,33 @@ REST_FRAMEWORK = {
     ]
 }
 
+REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+CELERY_BROKER_URL = f'redis://{REDIS_HOST}:6379/2'
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:6379/3'
+
+CELERY_BEAT_SCHEDULE = {
+    'log-fleet-status-summary-every-30-seconds': {
+        'task': 'tasks_demo.tasks.log_fleet_status_summary',
+        'schedule': timedelta(seconds=30),
+    },
+}
+
+CELERY_TASK_DEFAULT_QUEUE = 'default'
+
+CELERY_TASK_ROUTES = {
+    'tasks_demo.tasks.log_fleet_status_summary': {'queue': 'reports'},
+}
+
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -98,11 +128,11 @@ REST_FRAMEWORK = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'guardex_db',
-        'USER': 'postgres',
-        'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'guardex_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'admin'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -142,5 +172,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 AUTH_USER_MODEL = 'user.User'
