@@ -24,7 +24,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -39,7 +39,16 @@ services:
 
   celery_worker:
     build: .
-    command: ["celery", "-A", "guardex", "worker", "-Q", "default,reports", "--loglevel=info"]
+    command:
+      [
+        "celery",
+        "-A",
+        "guardex",
+        "worker",
+        "-Q",
+        "default,reports",
+        "--loglevel=info",
+      ]
     environment:
       DB_HOST: db
       DB_NAME: ${DB_NAME}
@@ -51,6 +60,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      web:
+        condition: service_started
 
   celery_beat:
     build: .
@@ -66,6 +77,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      web:
+        condition: service_started
 
 volumes:
   postgres_data:
