@@ -109,11 +109,28 @@ root-level `docker-compose.yml` with `web`/`db`/`redis`/`celery_worker`/
 env vars with local defaults preserved; hit and fixed a `celery_worker`
 queue-routing bug — needed `-Q default,reports` to match
 `CELERY_TASK_ROUTES` — and a missing-migrations issue on the fresh
-containerized Postgres volume; full stack verified end-to-end).
+containerized Postgres volume; full stack verified end-to-end), VPS
+(AWS EC2 free-tier Ubuntu instance; Docker + compose plugin installed;
+project deployed via `git clone`/`git pull`, `.env` recreated manually
+per environment; hit and fixed the same migration race again on a truly
+fresh volume — `entrypoint.sh` now only runs `migrate`/`collectstatic`
+for the `gunicorn` command, with `celery_worker`/`celery_beat` gated on
+`web: condition: service_started`; `ALLOWED_HOSTS`/`DEBUG` made env-var
+driven via `DJANGO_ALLOWED_HOSTS`/`DEBUG`; added a containerized `nginx`
+service — shared `static_volume` with `web`, reverse-proxies to
+`web:8000` via Compose's internal DNS, is now the only published port
+(80); `web`'s direct `8000:8000` port mapping removed. Hit and fixed
+several EC2 Security Group gotchas: Custom TCP needed for non-HTTP(S)
+ports, "My IP" source is a static snapshot that goes stale when a home
+IP changes — not live-updating — and HTTP must stay `0.0.0.0/0` since
+it's the public entry point, unlike SSH. Full stack verified reachable
+over plain HTTP from an external browser).
 
-Currently on: **Phase 5 — VPS** (moving the Docker Compose stack to a
-real VPS). Per the Teaching Mode exception, this uses root-level
-`Dockerfile`/`docker-compose.yml`/`deploy/` files, not a new Django app.
+Currently on: **Phase 6 — CI/CD (GitHub Actions)** (automating the
+push → SSH → `git pull` → `docker compose up --build -d` sequence
+that's currently done by hand). Per the Teaching Mode exception, this
+uses root-level `Dockerfile`/`docker-compose.yml`/`deploy/`/
+`.github/workflows/` files, not a new Django app.
 
 ## Progress
 
